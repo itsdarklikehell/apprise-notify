@@ -1,2 +1,4 @@
-pwnspeaker:
-    enabled: true
+main:
+    plugins:
+        apprise-notify:
+            enabled: true
