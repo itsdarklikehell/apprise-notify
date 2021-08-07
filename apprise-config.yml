@@ -15,6 +15,17 @@
 #   macosx://
 #   windows://
 
-
-
-mailtos://bauke.molenaar:qzujjjvwvdxeuvqw@gmail.com
+# /config/apprise.yaml
+# Our Apprise Configuration File leveraging Tagging
+#
+urls:
+  # Set up a email notification
+  - "mailtos://bauke.molenaar:qzujjjvwvdxeuvqw@gmail.com":
+    - tag: me, family
+      to: myuser@gmail.com
+    - tag: family
+      to: myspouse@gmail.com, mykid@gmail.com
+ 
+  # Our DevOps team at work
+  - "tgram://1823423007:AAEdgfiJbNL1G9zEi5LweECJsda_pIbCdoM/639276511":
+    - tag: devops
