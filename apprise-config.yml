@@ -1,0 +1,20 @@
+# see https://github.com/caronc/apprise for more examples
+
+# examples:
+#
+#   tgram://{bot_token}/{chat_id}
+#   discord://{WebhookID}/{WebhookToken}
+#   mailtos://{user}:{password}@{host}
+#   twitter://user@CKey/CSecret/AKey/ASecret
+
+#   dbus://
+#   qt://
+#   glib://
+#   kde://
+#   gnome://
+#   macosx://
+#   windows://
+
+
+
+mailtos://bauke.molenaar:qzujjjvwvdxeuvqw@gmail.com

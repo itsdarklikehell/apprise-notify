@@ -12,7 +12,7 @@ apobj = apprise.Apprise()
 config = apprise.AppriseConfig()
 
 # Add a configuration source:
-config.add('/home/pi/.config/apprise-config.yml')
+config.add('/home/pi/pwnagotchi-plugins-contrib/apprise-config.yml')
 
 # Add another...
 #config.add('https://myserver:8080/path/to/config')
