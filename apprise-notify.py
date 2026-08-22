@@ -107,10 +107,7 @@ class Apprise(plugins.Plugin):
 """
     def __init__(self):
         logging.debug("Apprise plugin created")
-        apprise -vv -t 'my title' -b 'my notification body' \
-        --config=/home/pi/.config/apprise.yml \
-        #--config=https://localhost/my/apprise/config
-        
+
     # called when http://<host>:<port>/plugins/<plugin>/ is called
     # must return a html page
     # IMPORTANT: If you use "POST"s, add a csrf-token (via csrf_token() and render_template_string)
