@@ -1,0 +1,6 @@
+# Python cache (generated, never tracked)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
