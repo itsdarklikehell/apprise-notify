@@ -52,3 +52,35 @@ ffmpeg -y -r 15 -f image2pipe -vcodec ppm -i gource.ppm \
 - [x] Pwnagotchi config templates (`apprise-notify.toml`, `apprise-notify.yml`)
 - [x] Gource CI workflow (nbprojekt/gource-action, 1080p/60fps)
 - [x] Gource video in repo (geautomatiseerd per push)
+- [x] **Volledige implementatie** — alle callbacks sturen nu echte Apprise-notificaties
+- [x] **Lazy loading** — config wordt alleen geladen bij eerste notificatie
+- [x] **Tagging ondersteuning** — elk event kan een tag hebben (handshake, ai, wifi, status, etc.)
+- [x] **Handshake attachment** — captured handshake-bestanden kunnen als attachment worden verzonden
+- [x] **Multi-config paden** — plugin zoekt op meerdere paden naar apprise-config.yml
+- [x] **Graceful fallback** — plugin werkt zonder config (logt waarschuwing, stuurt geen notificaties)
+
+## Nieuw in v2.0.0
+
+De plugin was eerder een scaffold met alleen `logging.debug` in elke callback. V2.0.0 maakt het bruikbaar:
+
+- Elke callback roept nu `_notify()` aan met context-specifieke titels en bodies
+- Handshake-captures kunnen het captured bestand als attachment meenemen
+- Configuratieladen is lazy — er wordt niet opgeladen bij plugin-init, maar bij eerste notificatie
+- Meerdere configuratielocaties worden ondersteund (pi home, pwnagotchi-plugins-contrib, etc.)
+
+## Notificatie-tags
+
+De plugin ondersteunt Apprise tagging. Elke callback gebruikt een standaard tag:
+
+| Tag | Events |
+|-----|--------|
+| `handshake` | Handshake captured |
+| `ai` | AI ready, training start/end, policy, rewards |
+| `wifi` | Free channel, association, WiFi update |
+| `status` | Ready, bored, sad, excited, lonely, rebooting |
+| `internet` | Internet available |
+| `peers` | Peer detected/lost |
+| `deauth` | Deauthentication events |
+| `epoch` | Epoch complete |
+
+Configureer services met tags in je apprise-config.yml om alleen specifieke events te ontvangen.

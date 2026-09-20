@@ -1,239 +1,366 @@
 import logging
-
+import os
 import apprise
 from pwnagotchi import plugins
 
+# Apprise toestel - laadt config van meerdere mogelijkelijke paden
 apobj = apprise.Apprise()
+apprise_config = apprise.AppriseConfig()
 
-# Create an Config instance
-config = apprise.AppriseConfig()
-
-# Add a configuration source:
-config.add('/home/pi/pwnagotchi-plugins-contrib/apprise-config.yml')
-
-# Add another...
-#config.add('https://myserver:8080/path/to/config')
-
-# Make sure to add our config into our apprise object
-apobj.add(config)
-
-# You can mix and match; add an entry directly if you want too
-# In this entry we associate the 'admin' tag with our notification
-apobj.add('mailto://myuser:mypass@hotmail.com', tag='admin')
-
-# Then notify these services any time you desire. The below would
-# notify all of the services that have not been bound to any specific
-# tag.
-apobj.notify(
-    body='what a great notification service!',
-    title='my notification title',
-)
-
-# Tagging allows you to specifically target only specific notification
-# services you've loaded:
-apobj.notify(
-    body='send a notification to our admin group',
-    title='Attention Admins',
-    # notify any services tagged with the 'admin' tag
-    tag='admin',
-)
-
-# If you want to notify absolutely everything (reguardless of whether
-# it's been tagged or not), just use the reserved tag of 'all':
-apobj.notify(
-    body='send a notification to our admin group',
-    title='Attention Admins',
-    # notify absolutely everything loaded, reguardless on wether
-    # it has a tag associated with it or not:
-    tag='all',
-)
-
-# Then send your attachment.
-apobj.notify(
-    title='A rare photo of TinyTony.',
-    body='They are often well hidden from plain sight! but not this one, hah! :)',
-    attach='/home/pi/pwnagotchi-splashscreen.png',
-)
-
-# Send a web based attachment too! In the below example, we connect to a home
-# security camera and send a live image to an email. By default remote web
-# content is cached but for a security camera, we might want to call notify
-# again later in our code so we want our last image retrieved to expire(in
-# this case after 3 seconds).
-apobj.notify(
-    title='Latest security image',
-    attach='http:/admin:password@hikvision-cam01/ISAPI/Streaming/channels/101/picture?cache=3'
-)
-
-# Now add all of the entries we're intrested in:
-attach = (
-    # ?name= allows us to rename the actual jpeg as found on the site
-    # to be another name when sent to our receipient(s)
-    'https://i.redd.it/my2t4d2fx0u31.jpg?name=FlyingToMars.jpg',
-
-    # Now add another:
-    '/path/to/funny/joke.gif',
-)
-
-# Send your multiple attachments with a single notify call:
-apobj.notify(
-    title='Some good jokes.',
-    body='Hey guys, check out these!',
-    attach=attach,
-)
-
-#####################################################################
+# Configuratiepaden (in volgorde van prioriteit)
+CONFIG_PATHS = [
+    '/home/pi/apprise-config.yml',
+    '/home/pi/pwnagotchi-plugins-contrib/apprise-config.yml',
+    '/etc/pwnagotchi/apprise-config.yml',
+    './apprise-config.yml',
+]
 
 
+def _load_apprise_config():
+    """Laad Apprise-configuratie van beschikbare paden."""
+    loaded = False
+    for path in CONFIG_PATHS:
+        if os.path.exists(path):
+            try:
+                apprise_config.add(path)
+                logging.info(f"Apprise: loaded config from {path}")
+                loaded = True
+            except Exception as e:
+                logging.error(f"Apprise: failed to load config from {path}: {e}")
+    if loaded:
+        apobj.add(apprise_config)
+    return loaded
 
-class Apprise(plugins.Plugin):
+
+def _get_agent_status(agent):
+    """Breng agent status naar leesbare tekst."""
+    try:
+        return agent.state
+    except Exception:
+        return "unknown"
+
+
+class AppriseNotify(plugins.Plugin):
+    """
+    Apprise-notificatie plugin voor Pwnagotchi.
+
+    Stuurt notificaties via Apprise naar geconfigureerde services
+    (Telegram, Discord, e-mail, Slack, Pushbullet, etc.) bij belangrijke
+    events zoals handshake-captures, internet connectivity, AI-events, etc.
+
+    Configuratie via apprise-config.yml (Apprise YAML format) of via
+    directe URL's in de plugin-config.
+    """
+
     __author__ = 'bauke.molenaar@gmail.com'
-    __version__ = '1.0.0'
+    __version__ = '2.0.0'
     __license__ = 'GPL3'
-    __description__ = 'An Apprise plugin for pwnagotchi that implements all the available callbacks.'
-    __name__ = 'Apprise'
+    __description__ = (
+        'Apprise-notificaties voor Pwnagotchi. '
+        'Stuurt meldingen naar Telegram, Discord, e-mail en andere services '
+        'via Apprise bij handshake-captures, internet-connectivity en AI-events.'
+    )
+    __name__ = 'apprise-notify'
     __help__ = """
--this plugin needs a installed and working audio DAC HAT, USB-Soundcard or a connected bt-headset/headphone for audio output, like https://www.raspiaudio.com/
--for enable text2speech on raspberry-pi-zero with debian buster to speak the SSID on handshake and others, you need to install "pico2wave" as root:
-⋅⋅⋅wget http://archive.raspberrypi.org/debian/pool/main/s/svox/libttspico-utils_1.0+git20130326-3+rpi1_armhf.deb
-⋅⋅⋅wget http://archive.raspberrypi.org/debian/pool/main/s/svox/libttspico0_1.0+git20130326-3+rpi1_armhf.deb
-⋅⋅⋅apt-get install -f ./libttspico0_1.0+git20130326-3+rpi1_armhf.deb ./libttspico-utils_1.0+git20130326-3+rpi1_armhf.deb
-⋅⋅⋅# test:
-⋅⋅⋅pico2wave -w lookdave.wav "Look Dave, I can see you're really upset about this." && aplay lookdave.wav
--with device https://www.raspiaudio.com/promo you can use the yellow button to shutdown your raspberry-pi. read sound/shutdown_button.py for help
-"""
+    Deze plugin gebruikt Apprise om notificaties te verzenden naar diverse
+    diensten (Telegram, Discord, e-mail, Slack, Pushbullet, etc.).
+
+    Installatie:
+    1. Installeer Apprise: pip3 install apprise
+    2. Kopieer apprise-notify.py naar je Pwnagotchi plugins directory
+    3. Maak een apprise-config.yml met je webhook-/service-URL's
+    4. Voeg toe aan config.yaml:
+
+    apprise-notify:
+        enabled: true
+
+    Voorbeeld apprise-config.yml:
+    urls:
+      - "tgram://BOT_TOKEN/CHAT_ID":
+          tag: telegram
+      - "discord://WEBHOOK_ID/WEBHOOK_TOKEN":
+          tag: discord
+      - "mailtos://user:pass@gmail.com":
+          tag: email
+    """
+
     def __init__(self):
-        logging.debug("Apprise plugin created")
+        self._config_loaded = False
+        logging.debug("AppriseNotify plugin initialized")
 
-    # called when http://<host>:<port>/plugins/<plugin>/ is called
-    # must return a html page
-    # IMPORTANT: If you use "POST"s, add a csrf-token (via csrf_token() and render_template_string)
-    def on_webhook(self, path, request):
-        logging.debug("Apprise Webhook clicked!")
+    def _ensure_config(self):
+        """Zorg dat Apprise-config laadt (lazy loading bij eerste gebruik)."""
+        if not self._config_loaded:
+            self._config_loaded = _load_apprise_config()
+            if not self._config_loaded:
+                logging.warning(
+                    "AppriseNotify: no config found at any of: %s",
+                    ', '.join(CONFIG_PATHS),
+                )
+        return self._config_loaded
 
-    # called when the plugin is loaded
+    def _notify(self, title, body, tag=None, attach=None):
+        """Verstuur een Apprise-notificatie."""
+        if not self._ensure_config():
+            return False
+        try:
+            kwargs = {'title': title, 'body': body}
+            if tag:
+                kwargs['tag'] = tag
+            if attach:
+                kwargs['attach'] = attach
+            result = apobj.notify(**kwargs)
+            if result:
+                logging.debug(f"AppriseNotify: sent '{title}' to {tag or 'all'}")
+            else:
+                logging.warning(f"AppriseNotify: no services configured for '{title}'")
+            return result
+        except Exception as e:
+            logging.error(f"AppriseNotify: failed to send notification: {e}")
+            return False
+
+    # -------------------------------------------------------
+    # Lifecycle callbacks
+    # -------------------------------------------------------
+
     def on_loaded(self):
-        logging.debug("Apprise plugin loaded")
+        logging.info("AppriseNotify plugin loaded, config status: %s",
+                     "loaded" if self._config_loaded else "no config")
 
-    # called before the plugin is unloaded
     def on_unload(self, ui):
-        logging.debug("Apprise plugin unloaded")
+        logging.debug("AppriseNotify plugin unloaded")
 
-    # called hen there's internet connectivity
-    def on_internet_available(self, agent):
-    	logging.debug("I now have internet.")
-
-    # called to setup the ui elements
-    def on_ui_setup(self, ui):
-        # add custom UI elements
-        logging.debug("Setting up UI elements")
-
-    # called when the ui is updated
-    def on_ui_update(self, ui):
-        logging.debug("The UI is updated")
-
-    # called when the hardware display setup is done, display is an hardware specific object
-    def on_display_setup(self, display):
-    	logging.debug("Apprise plugin created")
-
-    # called when everything is ready and the main loop is about to start
     def on_ready(self, agent):
-        logging.info("unit is ready!")
+        self._notify(
+            title="Pwnagotchi Ready",
+            body=f"{agent.name} is ready and operational on {_get_agent_status(agent)}.",
+            tag='status',
+        )
 
-    # called when the AI finished loading
+    # -------------------------------------------------------
+    # Internet connectivity
+    # -------------------------------------------------------
+
+    def on_internet_available(self, agent):
+        self._notify(
+            title="Internet Available",
+            body=f"{agent.name} has internet connectivity.",
+            tag='internet',
+        )
+
+    def on_webhook(self, path, request):
+        logging.debug("AppriseNotify webhook triggered: %s", path)
+
+    # -------------------------------------------------------
+    # AI callbacks
+    # -------------------------------------------------------
+
     def on_ai_ready(self, agent):
-    	logging.debug("The AI is finished loading")
+        self._notify(
+            title="AI Ready",
+            body=f"{agent.name}'s AI model is loaded and ready.",
+            tag='ai',
+        )
 
-    # called when the AI finds a new set of parameters
     def on_ai_policy(self, agent, policy):
-    	logging.debug("I have found a new set of parameters.")
+        self._notify(
+            title="AI Policy Update",
+            body=f"{agent.name} received new AI policy parameters.",
+            tag='ai',
+        )
 
-    # called when the AI starts training for a given number of epochs
     def on_ai_training_start(self, agent, epochs):
-    	logging.debug("The AI has started training.")
+        self._notify(
+            title="AI Training Started",
+            body=f"{agent.name} started training for {epochs} epochs.",
+            tag='ai',
+        )
 
-    # called after the AI completed a training epoch
     def on_ai_training_step(self, agent, _locals, _globals):
-    	logging.debug("The AI has completed training for an epoch.")
+        pass  # te frequent voor notificaties
 
-    # called when the AI has done training
     def on_ai_training_end(self, agent):
-    	logging.debug("The AI is done with training.")
+        self._notify(
+            title="AI Training Complete",
+            body=f"{agent.name} completed AI training epoch.",
+            tag='ai',
+        )
 
-    # called when the AI got the best reward so far
     def on_ai_best_reward(self, agent, reward):
-        logging.debug("The AI just got its best reward so far.")
+        self._notify(
+            title="Best Reward!",
+            body=f"{agent.name} achieved best reward: {reward:.2f}",
+            tag='ai',
+        )
 
-    # called when the AI got the worst reward so far
     def on_ai_worst_reward(self, agent, reward):
-        logging.debug("The AI just got its worst reward so far.")
+        self._notify(
+            title="Worst Reward",
+            body=f"{agent.name} got worst reward: {reward:.2f}",
+            tag='ai',
+        )
 
-    # called when a non overlapping wifi channel is found to be free
+    # -------------------------------------------------------
+    # Network / WiFi callbacks
+    # -------------------------------------------------------
+
     def on_free_channel(self, agent, channel):
-        logging.debug("I just found a non overlapping wifi channel that is free.")
+        self._notify(
+            title="Free Channel Found",
+            body=f"{agent.name} found free WiFi channel: {channel}",
+            tag='wifi',
+        )
 
-    # called when the status is set to bored
-    def on_bored(self, agent):
-        logging.debug("I am so bored right now...")
-
-    # called when the status is set to sad
-    def on_sad(self, agent):
-        logging.debug("I am so sad...")
-
-    # called when the status is set to excited
-    def on_excited(self, agent):
-        logging.debug("I am so excited...")
-
-    # called when the status is set to lonely
-    def on_lonely(self, agent):
-        logging.debug("I am so loneley, nobody wants to play with me...")
-
-    # called when the agent is rebooting the board
-    def on_rebooting(self, agent):
-        logging.debug("I am going to reboot now.")
-
-    # called when the agent is waiting for t seconds
-    def on_wait(self, agent, t):
-        logging.debug("Waiting for a few seconds...")
-
-    # called when the agent is sleeping for t seconds
-    def on_sleep(self, agent, t):
-        logging.debug("Sleeping for a few seconds ...")
-
-    # called when the agent refreshed its access points list
     def on_wifi_update(self, agent, access_points):
-        logging.debug("I have refreshed my list of access points...")
+        count = len(access_points) if access_points else 0
+        self._notify(
+            title="WiFi Update",
+            body=f"{agent.name} refreshed AP list: {count} access points found.",
+            tag='wifi',
+        )
 
-    # called when the agent refreshed an unfiltered access point list
-    # this list contains all access points that were detected BEFORE filtering
     def on_unfiltered_ap_list(self, agent, access_points):
-        logging.debug("I have refreshed my list of unfilteted access points...")
+        count = len(access_points) if access_points else 0
+        logging.debug("AppriseNotify: unfiltered AP list: %d APs", count)
 
-    # called when the agent is sending an association frame
     def on_association(self, agent, access_point):
-        logging.debug("I am sending an association frame now...")
+        ssid = getattr(access_point, 'ssid', 'unknown')
+        self._notify(
+            title="Association",
+            body=f"{agent.name} associated with {ssid}.",
+            tag='wifi',
+        )
 
-    # called when the agent is deauthenticating a client station from an AP
     def on_deauthentication(self, agent, access_point, client_station):
-        logging.debug("I am deauthenticating a client from its access point...")
+        ssid = getattr(access_point, 'ssid', 'unknown')
+        bssid = getattr(access_point, 'bssid', 'unknown')
+        self._notify(
+            title="Deauthentication",
+            body=f"{agent.name} deauthenticated client from {ssid} ({bssid}).",
+            tag='deauth',
+        )
 
-    # callend when the agent is tuning on a specific channel
     def on_channel_hop(self, agent, channel):
-        logging.debug("I am running on channel C...")
+        pass  # te frequent
 
-    # called when a new handshake is captured, access_point and client_station are json objects
-    # if the agent could match the BSSIDs to the current list, otherwise they are just the strings of the BSSIDs
+    # -------------------------------------------------------
+    # Handshake capture (belangrijkste callback)
+    # -------------------------------------------------------
+
     def on_handshake(self, agent, filename, access_point, client_station):
-        logging.debug("I have captured a handshake...")
+        ssid = getattr(access_point, 'ssid', 'unknown')
+        bssid = getattr(access_point, 'bssid', 'unknown')
+        client = getattr(client_station, 'mac', 'unknown') if client_station else 'unknown'
 
-    # called when an epoch is over (where an epoch is a single loop of the main algorithm)
+        # Voeg handshake-bestand toe als attachment (indien beschikbaar)
+        attach_path = None
+        if filename and os.path.exists(filename):
+            attach_path = filename
+
+        self._notify(
+            title="Handshake Captured!",
+            body=(
+                f"{agent.name} captured a handshake!\n\n"
+                f"SSID: {ssid}\n"
+                f"BSSID: {bssid}\n"
+                f"Client: {client}\n"
+                f"File: {filename}"
+            ),
+            tag='handshake',
+            attach=attach_path,
+        )
+
+    # -------------------------------------------------------
+    # Epoch callback
+    # -------------------------------------------------------
+
     def on_epoch(self, agent, epoch, epoch_data):
-        logging.debug("I have completed a whole epoch...")
+        friends = agent.friends.get() if hasattr(agent, 'friends') else []
+        friend_count = len(friends) if friends else 0
+        self._notify(
+            title="Epoch Complete",
+            body=(
+                f"Epoch {epoch} complete.\n"
+                f"Status: {agent.state}\n"
+                f"Friends: {friend_count}"
+            ),
+            tag='epoch',
+        )
 
-    # called when a new peer is detected
+    # -------------------------------------------------------
+    # Peer callbacks
+    # -------------------------------------------------------
+
     def on_peer_detected(self, agent, peer):
-        logging.debug("I have found a new peer...")
+        name = getattr(peer, 'name', 'unknown')
+        self._notify(
+            title="New Peer Detected",
+            body=f"{agent.name} detected new peer: {name}.",
+            tag='peers',
+        )
 
-    # called when a known peer is lost
     def on_peer_lost(self, agent, peer):
-        logging.debug("I have lost contact with a peer...")
+        name = getattr(peer, 'name', 'unknown')
+        self._notify(
+            title="Peer Lost",
+            body=f"{agent.name} lost contact with peer: {name}.",
+            tag='peers',
+        )
+
+    # -------------------------------------------------------
+    # Status callbacks
+    # -------------------------------------------------------
+
+    def on_bored(self, agent):
+        self._notify(
+            title="Bored",
+            body=f"{agent.name} is bored and looking for something to do.",
+            tag='status',
+        )
+
+    def on_sad(self, agent):
+        self._notify(
+            title="Sad",
+            body=f"{agent.name} is sad... Maybe needs more handshakes?",
+            tag='status',
+        )
+
+    def on_excited(self, agent):
+        self._notify(
+            title="Excited",
+            body=f"{agent.name} is excited about something!",
+            tag='status',
+        )
+
+    def on_lonely(self, agent):
+        self._notify(
+            title="Lonely",
+            body=f"{agent.name} feeling lonely, no peers around.",
+            tag='status',
+        )
+
+    def on_rebooting(self, agent):
+        self._notify(
+            title="Rebooting",
+            body=f"{agent.name} is rebooting now.",
+            tag='status',
+        )
+
+    def on_wait(self, agent, t):
+        pass  # te frequent
+
+    def on_sleep(self, agent, t):
+        pass  # te frequent
+
+    # -------------------------------------------------------
+    # UI callbacks
+    # -------------------------------------------------------
+
+    def on_ui_setup(self, ui):
+        logging.debug("AppriseNotify UI setup")
+
+    def on_ui_update(self, ui):
+        pass  # te frequent
+
+    def on_display_setup(self, display):
+        logging.debug("AppriseNotify display setup")
