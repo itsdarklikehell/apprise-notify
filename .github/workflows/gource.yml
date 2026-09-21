@@ -19,36 +19,53 @@ jobs:
           fetch-depth: 0
 
       - name: Gource
-        uses: nbprojekt/gource-action@v1
+        uses: nbprojekt/gource-action@v1.3.0
         with:
           gource_resolution: 1080p
           gource_fps: 60
           gource_filename_time: 3
           gource_hide_items: 'mouse,date,filenames'
+          gource_max_files: 1500
+          gource_highlight_users: true
+          gource_output_framerate: 30
+          gource_stop_at_end: true
+          gource_auto_skip_seconds: 0.1
+          gource_multi_sampling: true
+          gource_title: 'apprise-notify development timeline'
+          gource_seconds_per_day: 0.4
 
       - name: Install ffmpeg (runner)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
 
-      - name: Upscale + re-encode
+      - name: Re-encode 1080p
         run: |
           ffmpeg -y -i ./gource/gource.mp4 \
-            -c:v libx264 -crf 19 -level 3.1 -preset slow -tune film \
-            -filter:v "scale=-1:720" -sws_flags lanczos \
-            -c:a aac -b:a 128k \
+            -c:v libx264 -crf 18 -level 4.1 -preset medium -tune film \
+            -filter:v "scale=-1:1080" -sws_flags lanczos \
+            -c:a aac -b:a 192k -ar 48000 \
+            -movflags +faststart \
             ./gource.mp4
+
+      - name: Downscale to 720p for README embed
+        run: |
+          ffmpeg -y -i ./gource.mp4 \
+            -c:v libx264 -crf 20 -preset medium \
+            -vf "scale=-1:720" -c:a aac -b:a 192k \
+            gource-720p.mp4
 
       - name: Upload video
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-gource
           path: ./gource.mp4
+          retention-days: 30
 
-      - name: Commit gource video
+      - name: Commit gource videos
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add gource.mp4 || true
+          git add gource.mp4 gource-720p.mp4 || true
           git diff --staged --quiet || git commit -m "ci: update gource visualization (automated)"
           git push

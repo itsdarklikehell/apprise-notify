@@ -1,4 +1,5 @@
 # apprise-notify
+
 Een Python-plugin voor Pwnagotchi die Apprise gebruikt om notificaties te verzenden.
 
 ## Installatie
@@ -27,9 +28,9 @@ De plugin implementeert alle beschikbare Pwnagotchi-callbacks en stuurt via Appr
 
 De ontwikkelhistorie van dit project in een film:
 
-<video src="https://raw.githubusercontent.com/itsdarklikehell/apprise-notify/main/gource.mp4" controls width="100%"></video>
+<video src="https://raw.githubusercontent.com/itsdarklikehell/apprise-notify/main/gource-720p.mp4" controls width="100%"></video>
 
-*De video wordt automatisch gegenereerd door de [Gource workflow](.github/workflows/gource.yml) bij elke push.*
+*De video wordt automatisch gegenereerd door de [Gource workflow](.github/workflows/gource.yml) bij elke push — rendered via [nbprojekt/gource-action@v1.3.0](https://github.com/marketplace/actions/gource-action) in 1080p/60fps. Het artifact is 30 dagen beschikbaar via Actions.*
 
 Lokale video genereren:
 
@@ -50,8 +51,8 @@ ffmpeg -y -r 15 -f image2pipe -vcodec ppm -i gource.ppm \
 - [x] Apprise integratie (config, tagging, multi-service)
 - [x] Apprise config voorbeeld (`apprise-config.yml`)
 - [x] Pwnagotchi config templates (`apprise-notify.toml`, `apprise-notify.yml`)
-- [x] Gource CI workflow (nbprojekt/gource-action, 1080p/60fps)
-- [x] Gource video in repo (geautomatiseerd per push)
+- [x] Gource CI workflow (nbprojekt/gource-action@v1.3.0, 1080p/60fps + 720p README variant)
+- [x] Gource video in repo (geautomatiseerd per push, zowel 1080p als 720p)
 - [x] **Volledige implementatie** — alle callbacks sturen nu echte Apprise-notificaties
 - [x] **Lazy loading** — config wordt alleen geladen bij eerste notificatie
 - [x] **Tagging ondersteuning** — elk event kan een tag hebben (handshake, ai, wifi, status, etc.)
