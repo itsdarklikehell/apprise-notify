@@ -20,12 +20,14 @@
 #
 urls:
   # Set up a email notification
-  - "mailtos://bauke.molenaar:qzujjjvwvdxeuvqw@gmail.com":
+  # ⚠️ Replace with your own credentials or use environment variables
+  - "mailtos://USER:PASSWORD@gmail.com":
     - tag: me, family
       to: myuser@gmail.com
     - tag: family
       to: myspouse@gmail.com, mykid@gmail.com
  
   # Our DevOps team at work
-  - "tgram://1823423007:AAEdgfiJbNL1G9zEi5LweECJsda_pIbCdoM/639276511":
+  # ⚠️ Replace with your own bot token and chat ID
+  - "tgram://BOT_TOKEN/CHAT_ID":
     - tag: devops
