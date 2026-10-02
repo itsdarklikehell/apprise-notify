@@ -1,5 +1,11 @@
 # apprise-notify
 
+
+[![CI](https://github.com/itsdarklikehell/apprise-notify/actions/workflows/ci.yml/badge.svg)](https://github.com/itsdarklikehell/apprise-notify/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/itsdarklikehell/apprise-notify)](LICENSE)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+
+
 Een Python-plugin voor Pwnagotchi die Apprise gebruikt om notificaties te verzenden.
 
 ## Installatie
