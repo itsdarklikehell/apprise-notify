@@ -1,7 +1,8 @@
 # Release Notes
 
-## 2026-10-02
+## 2026-10-03
 
+* docs: update RELEASE_NOTES.md (a028fef)
 * chore: add GitHub templates and workflows (626cb17)
 * ci: pin gource action to commit SHA 57256d303c5a9a5e72ed92ba13e3e83c5ec8b257 (was nbprojekt/gource-action@v1.3.0) (fd62448)
 * ci: update gource visualization (automated) (f278621)
@@ -21,4 +22,3 @@
 * 	modified:   apprise-config.yml (23122ec)
 * 	modified:   apprise-config.yml 	modified:   apprise-notify.py (de91f65)
 * 	new file:   apprise-config.yml (8490718)
-* 	new file:   apprise-notify.toml (4f085c4)
