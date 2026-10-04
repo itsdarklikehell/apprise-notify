@@ -1,0 +1,2 @@
+apprise>=1.8.0
+pwnagotchi>=1.5.0
