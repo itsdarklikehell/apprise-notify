@@ -1,0 +1,2 @@
+# apprise-notify dependencies
+apprise>=1.7.0
